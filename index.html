@@ -36,8 +36,13 @@
   .hero{background:var(--pri2);border-radius:12px;padding:14px;text-align:center}
   .hero small{display:block;color:var(--sub);font-size:13px}
   .hero strong{font-size:30px;color:var(--pri)}
-  .cmp{border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:15px}
-  .cmp .kv b{font-size:16px}
+  .guide{background:#f5f7fb;border-radius:10px;padding:11px 13px;font-size:13.5px;line-height:1.55}
+  .qrow{display:flex;gap:8px;align-items:stretch}
+  .qrow input{flex:1;min-width:0}
+  .qside{flex:0 0 92px;border-radius:10px;font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center}
+  button.qside{background:var(--pri);color:#fff;border:0;cursor:pointer}
+  span.qside{background:#eef0f4;color:var(--sub);font-size:14px}
+  input:disabled{background:#f3f4f7;color:var(--ink);-webkit-text-fill-color:var(--ink);opacity:1}
   .hide{display:none!important}
   .spacer{flex:1}
   .center{text-align:center;color:var(--sub);padding:40px 0}
@@ -57,7 +62,7 @@
       <div class="kv"><span>1차 납품</span><span id="d1">-</span></div>
       <div class="kv"><span>2차 납품</span><span id="d2">-</span></div>
       <div class="kv"><span>입력 마감</span><span id="dl">-</span></div>
-      <div class="kv"><span>입력 안내</span><span id="boxNote">-</span></div>
+      <div class="kv"><span>박스단위</span><span id="boxNote">-</span></div>
     </div>
     <div id="closedMsg" class="alert bad hide">입력이 마감되었습니다. 조회만 가능합니다.</div>
     <div>
@@ -72,22 +77,24 @@
   <!-- ② 수량 입력 -->
   <div class="body hide" id="p2">
     <div class="hero"><div id="agName" style="font-size:18px;font-weight:700;margin-bottom:4px">-</div><small>총 수량</small><strong id="agTotal">0</strong><small>개</small></div>
+    <div class="guide">1차 수량을 입력하시고 <b>[입력]</b> 버튼을 눌러주세요.<br>2차 수량은 자동계산됩니다.</div>
     <div>
       <div class="lbl">1차 수량 (<span id="d1b">-</span>)</div>
-      <input id="q1" type="number" inputmode="numeric" min="0" step="1" placeholder="0">
+      <div class="qrow">
+        <input id="q1" type="number" inputmode="numeric" min="0" step="1" placeholder="0">
+        <button class="qside" id="btnCalc" type="button">입력</button>
+      </div>
     </div>
     <div>
       <div class="lbl">2차 수량 (<span id="d2b">-</span>)</div>
-      <input id="q2" type="number" inputmode="numeric" min="0" step="1" placeholder="0">
+      <div class="qrow">
+        <input id="q2" type="number" placeholder="-" disabled>
+        <span class="qside">자동계산</span>
+      </div>
     </div>
-    <div class="cmp">
-      <div class="kv"><span>1차 + 2차 합계</span><b id="sum">0개</b></div>
-      <div class="kv"><span>총 수량</span><b id="tot2">0개</b></div>
-    </div>
-    <div id="cmpMsg" class="alert bad">합계가 총 수량과 같아야 저장할 수 있습니다.</div>
+    <div id="q1Err" class="alert bad hide"></div>
     <div id="capWarn" class="alert warn hide"></div>
     <div id="saveErr" class="alert bad hide"></div>
-    <div class="spacer"></div>
     <button class="btn" id="btnSave" disabled>저장</button>
     <button class="btn gray" id="btnBack">이전</button>
   </div>
@@ -166,11 +173,11 @@ function goInput(){
   if (!cur) return;
   $('agName').textContent = cur.name;
   $('agTotal').textContent = fmt(cur.total);
-  $('tot2').textContent = fmt(cur.total) + '개';
   $('q1').value = cur.q1 === null ? '' : cur.q1;
   $('q2').value = cur.q2 === null ? '' : cur.q2;
-  $('q1').disabled = $('q2').disabled = !!S.closed;
+  $('q1').disabled = $('btnCalc').disabled = !!S.closed;
   $('saveErr').classList.add('hide');
+  $('q1Err').classList.add('hide');
   calc(); show('p2');
 }
 
@@ -181,28 +188,27 @@ function readQ(id){
   return { ok: Number.isInteger(v) && v >= 0, v };
 }
 
+// [입력] 버튼: 1차 확인 후 2차 = 총수량 - 1차
+function applyQ1(){
+  const a = readQ('q1'), e = $('q1Err');
+  e.classList.add('hide');
+  if (a.empty){ e.textContent = '1차 수량을 입력하세요. (없으면 0)'; e.classList.remove('hide'); $('q2').value=''; return calc(); }
+  if (!a.ok){ e.textContent = '1차 수량은 0 이상의 정수로 입력하세요.'; e.classList.remove('hide'); $('q2').value=''; return calc(); }
+  if (a.v > cur.total){ e.textContent = `1차 수량이 총 수량(${fmt(cur.total)}개)보다 많습니다.`; e.classList.remove('hide'); $('q2').value=''; return calc(); }
+  $('q2').value = cur.total - a.v;
+  return calc();
+}
+
+// 1차를 다시 고치면 2차를 비워 [입력]을 다시 누르게 함
+function onQ1Edit(){ $('q2').value = ''; $('q1Err').classList.add('hide'); calc(); }
+
 function calc(){
   const a = readQ('q1'), b = readQ('q2');
-  const sum = (a.ok ? a.v : 0) + (b.ok ? b.v : 0);
-  $('sum').textContent = fmt(sum) + '개';
-  const m = $('cmpMsg');
-  let valid = false;
-  if ((!a.ok && !a.empty) || (!b.ok && !b.empty)){
-    m.className = 'alert bad'; m.textContent = '수량은 0 이상의 정수로 입력하세요.';
-  } else if (a.empty || b.empty){
-    m.className = 'alert bad'; m.textContent = '1차·2차 수량을 모두 입력하세요. (없으면 0)';
-  } else if (sum !== cur.total){
-    const diff = cur.total - sum;
-    m.className = 'alert bad';
-    m.textContent = `합계가 총 수량과 다릅니다. ${diff > 0 ? fmt(diff) + '개 부족' : fmt(-diff) + '개 초과'}`;
-  } else {
-    m.className = 'alert ok'; m.textContent = '합계가 총 수량과 일치합니다.'; valid = true;
-  }
+  const valid = a.ok && b.ok && a.v + b.v === cur.total;
   // 1차 가용수량 초과 경고 (저장은 허용)
   const cw = $('capWarn');
-  if (S.cap !== null && a.ok){
-    const others = S.sum1 - (cur.q1 || 0);
-    const all1 = others + a.v;
+  if (S.cap !== null && valid){
+    const all1 = S.sum1 - (cur.q1 || 0) + a.v;
     if (all1 > S.cap){
       cw.innerHTML = `1차 전체 신청이 가용수량을 넘었습니다.<br>가용 ${fmt(S.cap)}개 / 신청 ${fmt(all1)}개<br>1차 수량은 조정될 수 있으니 가능하면 2차로 나눠 주세요.`;
       cw.classList.remove('hide');
@@ -244,8 +250,8 @@ async function save(){
 
 $('agency').addEventListener('change', pick);
 $('btnNext').addEventListener('click', goInput);
-$('q1').addEventListener('input', calc);
-$('q2').addEventListener('input', calc);
+$('q1').addEventListener('input', onQ1Edit);
+$('btnCalc').addEventListener('click', applyQ1);
 $('btnSave').addEventListener('click', save);
 $('btnBack').addEventListener('click', () => { render1(); show('p1'); });
 $('btnHome').addEventListener('click', () => { $('agency').value = ''; render1(); show('p1'); });
