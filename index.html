@@ -11,7 +11,7 @@
 <meta property="og:title" content="유닉스 에어스피더 네오 판촉 수량 신청">
 <meta property="og:description" content="대리점별 1차·2차 필요수량을 입력해 주세요.">
 <style>
-  :root{--bg:#eef1f5;--card:#fff;--ink:#1d2433;--sub:#6b7385;--line:#e2e6ee;--pri:#2b5bd7;--pri2:#e8eefc;--warn:#b54708;--warnbg:#fff4e5;--ok:#157f3b;--okbg:#e7f6ec;--err:#c4262e;--errbg:#fdecec}
+  :root{--content-h:400px;--bg:#eef1f5;--card:#fff;--ink:#1d2433;--sub:#6b7385;--line:#e2e6ee;--pri:#2b5bd7;--pri2:#e8eefc;--warn:#b54708;--warnbg:#fff4e5;--ok:#157f3b;--okbg:#e7f6ec;--err:#c4262e;--errbg:#fdecec}
   *{box-sizing:border-box}
   html,body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif}
   .wrap{max-width:480px;margin:0 auto;min-height:100vh;background:var(--card);display:flex;flex-direction:column}
@@ -44,7 +44,8 @@
   span.qside{background:#eef0f4;color:var(--sub);font-size:14px}
   input:disabled{background:#f3f4f7;color:var(--ink);-webkit-text-fill-color:var(--ink);opacity:1}
   .hide{display:none!important}
-  .spacer{flex:1}
+  .content{display:flex;flex-direction:column;gap:14px;min-height:var(--content-h)}
+  .actions{display:flex;flex-direction:column;gap:10px}
   .center{text-align:center;color:var(--sub);padding:40px 0}
 </style>
 </head>
@@ -57,6 +58,7 @@
 
   <!-- ① 대리점 선택 -->
   <div class="body hide" id="p1">
+   <div class="content">
     <div class="box">
       <h3>납품 일정 안내</h3>
       <div class="kv"><span>1차 납품</span><span id="d1">-</span></div>
@@ -70,12 +72,15 @@
       <select id="agency"><option value="">대리점을 선택하세요</option></select>
     </div>
     <div id="dupWarn" class="alert warn hide"></div>
-    <div class="spacer"></div>
+   </div>
+   <div class="actions">
     <button class="btn" id="btnNext" disabled>다음</button>
+   </div>
   </div>
 
   <!-- ② 수량 입력 -->
   <div class="body hide" id="p2">
+   <div class="content">
     <div class="hero"><div id="agName" style="font-size:18px;font-weight:700;margin-bottom:4px">-</div><small>총 수량</small><strong id="agTotal">0</strong><small>개</small></div>
     <div class="guide">1차 수량을 입력하시고 <b>[입력]</b> 버튼을 눌러주세요.<br>2차 수량은 자동계산됩니다.</div>
     <div>
@@ -94,12 +99,16 @@
     </div>
     <div id="q1Err" class="alert bad hide"></div>
     <div id="saveErr" class="alert bad hide"></div>
+   </div>
+   <div class="actions">
     <button class="btn" id="btnSave" disabled>저장</button>
     <button class="btn gray" id="btnBack">이전</button>
+   </div>
   </div>
 
   <!-- ③ 저장 완료 -->
   <div class="body hide" id="p3">
+   <div class="content">
     <div class="alert ok" id="doneMsg">저장되었습니다.</div>
     <div class="box">
       <div class="kv"><span>대리점</span><span id="rName">-</span></div>
@@ -108,8 +117,10 @@
       <div class="kv"><b>합계</b><b id="rt">-</b></div>
     </div>
     <div class="alert warn" id="editNote">마감 전까지 다시 들어와 수정할 수 있습니다.</div>
-    <div class="spacer"></div>
+   </div>
+   <div class="actions">
     <button class="btn gray" id="btnHome">처음으로</button>
+   </div>
   </div>
 </div>
 
