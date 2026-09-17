@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<!-- 유닉스 에어스피더 네오 판촉 수량(1차/2차) 신청 페이지 — 구글 시트(Apps Script)에 저장 -->
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-cache">
+<title>유닉스 에어스피더 네오 판촉 수량 신청</title>
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon-180.png">
+<meta property="og:title" content="유닉스 에어스피더 네오 판촉 수량 신청">
+<meta property="og:description" content="대리점별 1차·2차 필요수량을 입력해 주세요.">
+<style>
+  :root{--bg:#eef1f5;--card:#fff;--ink:#1d2433;--sub:#6b7385;--line:#e2e6ee;--pri:#2b5bd7;--pri2:#e8eefc;--warn:#b54708;--warnbg:#fff4e5;--ok:#157f3b;--okbg:#e7f6ec;--err:#c4262e;--errbg:#fdecec}
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif}
+  .wrap{max-width:480px;margin:0 auto;min-height:100vh;background:var(--card);display:flex;flex-direction:column}
+  .top{background:var(--pri);color:#fff;padding:18px 16px}
+  .top b{display:block;font-size:18px;line-height:1.35}
+  .top span{font-size:13px;opacity:.9}
+  .body{padding:16px;display:flex;flex-direction:column;gap:14px;flex:1}
+  .box{border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:14px}
+  .box h3{margin:0 0 8px;font-size:14px}
+  .kv{display:flex;justify-content:space-between;gap:12px;padding:4px 0}
+  .kv span:first-child{color:var(--sub)}
+  .lbl{font-size:14px;font-weight:700;margin-bottom:6px}
+  select,input{width:100%;padding:13px;border:1px solid var(--line);border-radius:10px;font-size:17px;background:#fff;color:var(--ink)}
+  input{text-align:right;font-weight:700}
+  .btn{background:var(--pri);color:#fff;border:0;border-radius:12px;padding:15px;font-size:16px;font-weight:700;width:100%;cursor:pointer}
+  .btn:disabled{opacity:.4;cursor:default}
+  .btn.gray{background:#eef0f4;color:var(--ink)}
+  .alert{border-radius:10px;padding:11px 13px;font-size:13.5px;line-height:1.55}
+  .warn{background:var(--warnbg);color:var(--warn)}
+  .ok{background:var(--okbg);color:var(--ok)}
+  .bad{background:var(--errbg);color:var(--err)}
+  .hero{background:var(--pri2);border-radius:12px;padding:14px;text-align:center}
+  .hero small{display:block;color:var(--sub);font-size:13px}
+  .hero strong{font-size:30px;color:var(--pri)}
+  .cmp{border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:15px}
+  .cmp .kv b{font-size:16px}
+  .hide{display:none!important}
+  .spacer{flex:1}
+  .center{text-align:center;color:var(--sub);padding:40px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><b id="title">유닉스 에어스피더 네오 판촉 수량 신청</b><span id="subtitle">대리점별 1차·2차 필요수량 입력</span></div>
+
+  <!-- 로딩 / 오류 -->
+  <div class="body" id="pLoad"><div class="center" id="loadMsg">불러오는 중…</div></div>
+
+  <!-- ① 대리점 선택 -->
+  <div class="body hide" id="p1">
+    <div class="box">
+      <h3>납품 일정 안내</h3>
+      <div class="kv"><span>1차 납품</span><span id="d1">-</span></div>
+      <div class="kv"><span>2차 납품</span><span id="d2">-</span></div>
+      <div class="kv"><span>입력 마감</span><span id="dl">-</span></div>
+      <div class="kv"><span>입력 안내</span><span id="boxNote">-</span></div>
+    </div>
+    <div id="closedMsg" class="alert bad hide">입력이 마감되었습니다. 조회만 가능합니다.</div>
+    <div>
+      <div class="lbl">대리점 선택</div>
+      <select id="agency"><option value="">대리점을 선택하세요</option></select>
+    </div>
+    <div id="dupWarn" class="alert warn hide"></div>
+    <div class="spacer"></div>
+    <button class="btn" id="btnNext" disabled>다음</button>
+  </div>
+
+  <!-- ② 수량 입력 -->
+  <div class="body hide" id="p2">
+    <div class="hero"><div id="agName" style="font-size:18px;font-weight:700;margin-bottom:4px">-</div><small>총 수량</small><strong id="agTotal">0</strong><small>개</small></div>
+    <div>
+      <div class="lbl">1차 수량 (<span id="d1b">-</span>)</div>
+      <input id="q1" type="number" inputmode="numeric" min="0" step="1" placeholder="0">
+    </div>
+    <div>
+      <div class="lbl">2차 수량 (<span id="d2b">-</span>)</div>
+      <input id="q2" type="number" inputmode="numeric" min="0" step="1" placeholder="0">
+    </div>
+    <div class="cmp">
+      <div class="kv"><span>1차 + 2차 합계</span><b id="sum">0개</b></div>
+      <div class="kv"><span>총 수량</span><b id="tot2">0개</b></div>
+    </div>
+    <div id="cmpMsg" class="alert bad">합계가 총 수량과 같아야 저장할 수 있습니다.</div>
+    <div id="capWarn" class="alert warn hide"></div>
+    <div id="saveErr" class="alert bad hide"></div>
+    <div class="spacer"></div>
+    <button class="btn" id="btnSave" disabled>저장</button>
+    <button class="btn gray" id="btnBack">이전</button>
+  </div>
+
+  <!-- ③ 저장 완료 -->
+  <div class="body hide" id="p3">
+    <div class="alert ok" id="doneMsg">저장되었습니다.</div>
+    <div class="box">
+      <div class="kv"><span>대리점</span><span id="rName">-</span></div>
+      <div class="kv"><span>1차 (<span id="rd1">-</span>)</span><span id="r1">-</span></div>
+      <div class="kv"><span>2차 (<span id="rd2">-</span>)</span><span id="r2">-</span></div>
+      <div class="kv"><b>합계</b><b id="rt">-</b></div>
+    </div>
+    <div class="alert warn" id="editNote">마감 전까지 다시 들어와 수정할 수 있습니다.</div>
+    <div class="spacer"></div>
+    <button class="btn gray" id="btnHome">처음으로</button>
+  </div>
+</div>
+
+<script>
+// ▼ Apps Script 배포 후 받은 웹앱 URL을 따옴표 안에 붙여넣으세요 (최초 1회)
+const API_URL = 'https://script.google.com/macros/s/AKfycbwy7I6AU0ksUahdZRf_n8aGHr9b2iHZ__gM-TfJh1NaMhvrOdeveghWJuk8q-r6WueQjQ/exec';
+
+let S = null;       // 서버에서 받은 설정·대리점 정보
+let cur = null;     // 선택한 대리점
+const $ = id => document.getElementById(id);
+const fmt = n => Number(n).toLocaleString('ko-KR');
+const show = id => ['pLoad','p1','p2','p3'].forEach(p => $(p).classList.toggle('hide', p !== id));
+const orDash = v => v ? v : '미정';
+
+function fail(msgs){
+  show('pLoad');
+  $('loadMsg').innerHTML = '<div class="alert bad" style="text-align:left">' +
+    msgs.map(m => '· ' + String(m).replace(/</g,'&lt;')).join('<br>') + '</div>';
+}
+
+async function load(){
+  if (!API_URL || API_URL.indexOf('PASTE_') === 0) return fail(['API 주소가 설정되지 않았습니다. index.html의 API_URL을 입력하세요.']);
+  try {
+    const r = await fetch(API_URL + '?t=' + Date.now());
+    const d = await r.json();
+    if (!d.ok) return fail(d.errors || ['알 수 없는 오류']);
+    apply(d); render1(); show('p1');
+  } catch(e){ fail(['서버에 연결하지 못했습니다. 잠시 후 새로고침해 주세요.', e.message]); }
+}
+
+function apply(d){
+  S = d;
+  if (d.title){ $('title').textContent = d.title; document.title = d.title; }
+  $('d1').textContent = $('d1b').textContent = $('rd1').textContent = orDash(d.d1);
+  $('d2').textContent = $('d2b').textContent = $('rd2').textContent = orDash(d.d2);
+  $('dl').textContent = d.deadline ? d.deadline + '까지' : '미정';
+  $('boxNote').textContent = d.boxNote || '-';
+  $('closedMsg').classList.toggle('hide', !d.closed);
+}
+
+function render1(){
+  const sel = $('agency'), keep = sel.value;
+  sel.innerHTML = '<option value="">대리점을 선택하세요</option>' + S.agencies.map(a =>
+    `<option value="${a.name}">${a.name} (${a.q1 === null ? '미입력' : '입력완료'})</option>`).join('');
+  sel.value = keep; pick();
+}
+
+function pick(){
+  cur = S.agencies.find(a => a.name === $('agency').value) || null;
+  const w = $('dupWarn');
+  if (cur && cur.q1 !== null){
+    w.innerHTML = `이 대리점은 <b>${cur.savedAt}</b>에 이미 입력했습니다.<br>1차 ${fmt(cur.q1)}개 · 2차 ${fmt(cur.q2)}개<br>` +
+      (S.closed ? '마감되어 수정할 수 없습니다.' : '계속하면 기존 값을 수정합니다. 본인 대리점이 맞는지 확인해 주세요.');
+    w.classList.remove('hide');
+  } else w.classList.add('hide');
+  $('btnNext').disabled = !cur;
+}
+
+function goInput(){
+  if (!cur) return;
+  $('agName').textContent = cur.name;
+  $('agTotal').textContent = fmt(cur.total);
+  $('tot2').textContent = fmt(cur.total) + '개';
+  $('q1').value = cur.q1 === null ? '' : cur.q1;
+  $('q2').value = cur.q2 === null ? '' : cur.q2;
+  $('q1').disabled = $('q2').disabled = !!S.closed;
+  $('saveErr').classList.add('hide');
+  calc(); show('p2');
+}
+
+function readQ(id){
+  const raw = $(id).value.trim();
+  if (raw === '') return { ok:false, v:0, empty:true };
+  const v = Number(raw);
+  return { ok: Number.isInteger(v) && v >= 0, v };
+}
+
+function calc(){
+  const a = readQ('q1'), b = readQ('q2');
+  const sum = (a.ok ? a.v : 0) + (b.ok ? b.v : 0);
+  $('sum').textContent = fmt(sum) + '개';
+  const m = $('cmpMsg');
+  let valid = false;
+  if ((!a.ok && !a.empty) || (!b.ok && !b.empty)){
+    m.className = 'alert bad'; m.textContent = '수량은 0 이상의 정수로 입력하세요.';
+  } else if (a.empty || b.empty){
+    m.className = 'alert bad'; m.textContent = '1차·2차 수량을 모두 입력하세요. (없으면 0)';
+  } else if (sum !== cur.total){
+    const diff = cur.total - sum;
+    m.className = 'alert bad';
+    m.textContent = `합계가 총 수량과 다릅니다. ${diff > 0 ? fmt(diff) + '개 부족' : fmt(-diff) + '개 초과'}`;
+  } else {
+    m.className = 'alert ok'; m.textContent = '합계가 총 수량과 일치합니다.'; valid = true;
+  }
+  // 1차 가용수량 초과 경고 (저장은 허용)
+  const cw = $('capWarn');
+  if (S.cap !== null && a.ok){
+    const others = S.sum1 - (cur.q1 || 0);
+    const all1 = others + a.v;
+    if (all1 > S.cap){
+      cw.innerHTML = `1차 전체 신청이 가용수량을 넘었습니다.<br>가용 ${fmt(S.cap)}개 / 신청 ${fmt(all1)}개<br>1차 수량은 조정될 수 있으니 가능하면 2차로 나눠 주세요.`;
+      cw.classList.remove('hide');
+    } else cw.classList.add('hide');
+  } else cw.classList.add('hide');
+  $('btnSave').disabled = !valid || !!S.closed;
+  return valid;
+}
+
+async function save(){
+  if (!calc() || S.closed) return;
+  const btn = $('btnSave'); btn.disabled = true; btn.textContent = '저장 중…';
+  $('saveErr').classList.add('hide');
+  try {
+    const r = await fetch(API_URL, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify({ name: cur.name, q1: readQ('q1').v, q2: readQ('q2').v }) });
+    const d = await r.json();
+    if (!d.ok){
+      $('saveErr').innerHTML = (d.errors || ['저장 실패']).map(x => String(x).replace(/</g,'&lt;')).join('<br>');
+      $('saveErr').classList.remove('hide');
+      return;
+    }
+    apply(d);
+    const s = d.saved;
+    $('doneMsg').textContent = `${s.name} · ${s.savedAt} ${s.kind === '수정' ? '수정' : '저장'} 완료`;
+    $('rName').textContent = s.name;
+    $('r1').textContent = fmt(s.q1) + '개';
+    $('r2').textContent = fmt(s.q2) + '개';
+    $('rt').textContent = fmt(s.q1 + s.q2) + '개';
+    $('editNote').textContent = d.deadline ? `마감(${d.deadline}) 전까지 다시 들어와 수정할 수 있습니다.` : '마감 전까지 다시 들어와 수정할 수 있습니다.';
+    show('p3');
+  } catch(e){
+    $('saveErr').textContent = '저장 중 연결 오류가 났습니다. 다시 저장해 주세요. (' + e.message + ')';
+    $('saveErr').classList.remove('hide');
+  } finally {
+    btn.textContent = '저장'; calc();
+  }
+}
+
+$('agency').addEventListener('change', pick);
+$('btnNext').addEventListener('click', goInput);
+$('q1').addEventListener('input', calc);
+$('q2').addEventListener('input', calc);
+$('btnSave').addEventListener('click', save);
+$('btnBack').addEventListener('click', () => { render1(); show('p1'); });
+$('btnHome').addEventListener('click', () => { $('agency').value = ''; render1(); show('p1'); });
+load();
+</script>
+</body>
+</html>
